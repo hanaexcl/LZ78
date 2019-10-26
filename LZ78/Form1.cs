@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
@@ -18,73 +19,6 @@ namespace LZ78 {
          * (31,+3)
          * (111,+4)
          */
-        public static List<int> Compress(string uncompressed) {
-            // build the dictionary
-            Dictionary<string, int> dictionary = new Dictionary<string, int>();
-            for (int i = 0; i < 256; i++)
-                dictionary.Add(((char)i).ToString(), i);
-
-            string w = string.Empty;
-            List<int> compressed = new List<int>();
-
-            foreach (char c in uncompressed) {
-                string wc = w + c;
-                if (dictionary.ContainsKey(wc)) {
-                    w = wc;
-                } else {
-                    // write w to output
-                    compressed.Add(dictionary[w]);
-                    // wc is a new sequence; add it to the dictionary
-                    dictionary.Add(wc, dictionary.Count);
-                    w = c.ToString();
-                }
-            }
-
-            // write remaining output if necessary
-            if (!string.IsNullOrEmpty(w))
-                compressed.Add(dictionary[w]);
-
-            return compressed;
-        }
-
-        public static string Decompress(List<int> compressed) {
-            // build the dictionary
-            Dictionary<int, string> dictionary = new Dictionary<int, string>();
-            for (int i = 0; i < 256; i++)
-                dictionary.Add(i, ((char)i).ToString());
-
-            string w = dictionary[compressed[0]];
-            compressed.RemoveAt(0);
-            StringBuilder decompressed = new StringBuilder(w);
-
-            foreach (int k in compressed) {
-                string entry = null;
-                if (dictionary.ContainsKey(k))
-                    entry = dictionary[k];
-                else if (k == dictionary.Count)
-                    entry = w + w[0];
-
-                decompressed.Append(entry);
-
-                // new sequence; add it to the dictionary
-                dictionary.Add(dictionary.Count, w + entry[0]);
-
-                w = entry;
-            }
-
-            return decompressed.ToString();
-        }
-
-        byte[] intToHexArray(int _num) {
-            List<byte> _list = new List<byte>();
-            //if (_num == 0) _list.Add(0x00);
-            while (_num > 0) {
-                _list.Add((byte)(_num & 0x00ff));
-                _num >>= 8;
-            }
-            _list.Reverse();
-            return _list.ToArray();
-        }
 
         private void Button1_Click(object sender, EventArgs e) {
             string filePath = string.Empty;
@@ -115,20 +49,11 @@ namespace LZ78 {
              * 256 start
              * 257 end
              */
-
-            /*
-            List<int> compressed = Compress(data);
-            richTextBox2.Text = string.Join(", ", compressed);
-            string decompressed = Decompress(compressed);
-            richTextBox3.Text = string.Join(", ", decompressed);
-            */
             
             Dictionary<string, int> dictionary = new Dictionary<string, int>();
             List<int> encode = new List<int>();
 
-            //for (int i = 0; i < 256; i++) {
-            //    dictionary.Add(((char)i).ToString(), i);
-            //}
+            for (int i = 0; i < 256; i++) dictionary.Add(((char)i).ToString(), i);
 
             encode.Add(256); // add start
             string w = "";
@@ -138,8 +63,15 @@ namespace LZ78 {
                     w = wc;
                 } else {
                     encode.Add(dictionary[w]);
-                    dictionary.Add(wc, dictionary.Count);
+                    dictionary.Add(wc, dictionary.Count+ 2);
                     w = c.ToString();
+                }
+
+                if (dictionary.Count >= ((1 << 14) - 1))
+                {
+                    encode.Add(256);
+                    dictionary.Clear();
+                    for (int i = 0; i < 256; i++) dictionary.Add(((char)i).ToString(), i);
                 }
             }
 
@@ -147,25 +79,71 @@ namespace LZ78 {
 
             encode.Add(257); // end start
 
-            //encodestring = "";
+            richTextBox2.Text = string.Join(" ", encode.ToArray());
 
-            //string encodestring = "";
-            /*
+
+            string encodestring = "";
+            
             foreach (KeyValuePair<string, int> item in dictionary) {
                 encodestring += item.Key.Replace("\0", string.Empty) + '\n';
             }
 
             richTextBox3.Text = encodestring;
-            */
 
+            double n1 = richTextBox1.Text.Length;
+            double n2 = richTextBox2.Text.Length;
+            double num = (n2 / n1);
+            MessageBox.Show("壓縮比率：" + num.ToString("G", CultureInfo.InvariantCulture));
         }
 
         private void Button3_Click(object sender, EventArgs e) {
-          
+            //DateTime time_start = DateTime.Now;//計時開始 取得目前時間
+
+            List<int> data = richTextBox2.Text.Split(' ').Select(Int32.Parse).ToList();
+
+
+            Dictionary<int, string> dictionary = new Dictionary<int, string>();
+
+            string decode = null;
+            string entry;
+            string laststr = "";
+
+            foreach (int c in data) {
+                switch (c)
+                {
+                    case 256:
+                        laststr = "";
+                        dictionary.Clear();
+                        for (int i = 0; i < 256; i++) dictionary.Add(i, ((char)i).ToString());
+                        break;
+
+                    case 257:
+                        break;
+
+                    default:
+                        entry = "";
+
+                        if (dictionary.ContainsKey(c))
+                            entry = dictionary[c];
+                        else
+                            entry = laststr + laststr[0];
+
+
+                        decode += entry;
+
+                        if (!laststr.Length.Equals(0)) dictionary.Add(dictionary.Count + 2, laststr + entry[0]);
+                        laststr = entry;
+                        break;
+                }
+            }
+
+            //DateTime time_end = DateTime.Now;
+
+            //string result2 = ((TimeSpan)(time_end - time_start)).TotalMilliseconds.ToString();
+
+            //MessageBox.Show(result2);
+            richTextBox1.Text = decode;
         }
 
-        private void RichTextBox2_TextChanged(object sender, EventArgs e) {
-
-        }
     }
 }
