@@ -80,6 +80,7 @@
             this.richTextBox2.TabIndex = 6;
             this.richTextBox2.Text = "";
             this.richTextBox2.WordWrap = false;
+            this.richTextBox2.TextChanged += new System.EventHandler(this.RichTextBox2_TextChanged);
             // 
             // richTextBox3
             // 
@@ -103,7 +104,7 @@
             this.Controls.Add(this.button2);
             this.Controls.Add(this.button1);
             this.Name = "Form1";
-            this.Text = "Lz 78 編碼";
+            this.Text = "Lzw 編碼";
             this.ResumeLayout(false);
 
         }

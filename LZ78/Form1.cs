@@ -1,12 +1,89 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 
 namespace LZ78 {
     public partial class Form1 : Form {
+        byte[] tempContext;
         public Form1() {
             InitializeComponent();
+        }
+
+        /* str '11231112'
+         * (11,+0)
+         * (12,+1)
+         * (23,+2)
+         * (31,+3)
+         * (111,+4)
+         */
+        public static List<int> Compress(string uncompressed) {
+            // build the dictionary
+            Dictionary<string, int> dictionary = new Dictionary<string, int>();
+            for (int i = 0; i < 256; i++)
+                dictionary.Add(((char)i).ToString(), i);
+
+            string w = string.Empty;
+            List<int> compressed = new List<int>();
+
+            foreach (char c in uncompressed) {
+                string wc = w + c;
+                if (dictionary.ContainsKey(wc)) {
+                    w = wc;
+                } else {
+                    // write w to output
+                    compressed.Add(dictionary[w]);
+                    // wc is a new sequence; add it to the dictionary
+                    dictionary.Add(wc, dictionary.Count);
+                    w = c.ToString();
+                }
+            }
+
+            // write remaining output if necessary
+            if (!string.IsNullOrEmpty(w))
+                compressed.Add(dictionary[w]);
+
+            return compressed;
+        }
+
+        public static string Decompress(List<int> compressed) {
+            // build the dictionary
+            Dictionary<int, string> dictionary = new Dictionary<int, string>();
+            for (int i = 0; i < 256; i++)
+                dictionary.Add(i, ((char)i).ToString());
+
+            string w = dictionary[compressed[0]];
+            compressed.RemoveAt(0);
+            StringBuilder decompressed = new StringBuilder(w);
+
+            foreach (int k in compressed) {
+                string entry = null;
+                if (dictionary.ContainsKey(k))
+                    entry = dictionary[k];
+                else if (k == dictionary.Count)
+                    entry = w + w[0];
+
+                decompressed.Append(entry);
+
+                // new sequence; add it to the dictionary
+                dictionary.Add(dictionary.Count, w + entry[0]);
+
+                w = entry;
+            }
+
+            return decompressed.ToString();
+        }
+
+        byte[] intToHexArray(int _num) {
+            List<byte> _list = new List<byte>();
+            //if (_num == 0) _list.Add(0x00);
+            while (_num > 0) {
+                _list.Add((byte)(_num & 0x00ff));
+                _num >>= 8;
+            }
+            _list.Reverse();
+            return _list.ToArray();
         }
 
         private void Button1_Click(object sender, EventArgs e) {
@@ -25,7 +102,7 @@ namespace LZ78 {
             if (filePath.Length == 0) return;
 
             string filecontext = string.Empty;
-            byte[] tempContext = System.IO.File.ReadAllBytes(filePath);
+            tempContext = System.IO.File.ReadAllBytes(filePath);
             filecontext = BitConverter.ToString(tempContext);
             filecontext = filecontext.Replace("-", "");
             richTextBox1.Text = filecontext;
@@ -33,66 +110,62 @@ namespace LZ78 {
 
         private void Button2_Click(object sender, EventArgs e) {
             string data = richTextBox1.Text;
-            string tempStr = "";
-            string encodeStr = "";
-            int lastID = 0;
-            int ID = 0;
+            
+            /*
+             * 256 start
+             * 257 end
+             */
 
-            List<string> Dictionary = new List<string>();
-            Dictionary.Add("");
+            /*
+            List<int> compressed = Compress(data);
+            richTextBox2.Text = string.Join(", ", compressed);
+            string decompressed = Decompress(compressed);
+            richTextBox3.Text = string.Join(", ", decompressed);
+            */
+            
+            Dictionary<string, int> dictionary = new Dictionary<string, int>();
+            List<int> encode = new List<int>();
 
-            int nowid = 0;
-            foreach (char str in data) {
-                nowid += 1;
+            //for (int i = 0; i < 256; i++) {
+            //    dictionary.Add(((char)i).ToString(), i);
+            //}
 
-                tempStr += str;
-                ID = Dictionary.FindIndex(tmp => tmp.Equals(tempStr));
-
-                if (ID == -1) {
-                    Dictionary.Add(tempStr);
-                    //encodeStr += "(" + lastID + "," + tempStr[tempStr.Length - 1] + ")";
-                    encodeStr += lastID + "," + tempStr[tempStr.Length - 1] + "|";
-                    tempStr = "";
-                    lastID = 0;
+            encode.Add(256); // add start
+            string w = "";
+            foreach (char c in data) {
+                string wc = w + c;
+                if (dictionary.ContainsKey(wc)) {
+                    w = wc;
                 } else {
-
-                    if (nowid == data.Length ) {
-                        encodeStr += ID + ",|";
-                    }
-                    lastID = ID;
+                    encode.Add(dictionary[w]);
+                    dictionary.Add(wc, dictionary.Count);
+                    w = c.ToString();
                 }
             }
 
-            richTextBox2.Text = encodeStr;
-            encodeStr = "";
-            foreach (string str in Dictionary) {
-                encodeStr += str + "\n";
+            encode.Add(dictionary[w]);
+
+            encode.Add(257); // end start
+
+            //encodestring = "";
+
+            //string encodestring = "";
+            /*
+            foreach (KeyValuePair<string, int> item in dictionary) {
+                encodestring += item.Key.Replace("\0", string.Empty) + '\n';
             }
-            richTextBox3.Text = encodeStr;
+
+            richTextBox3.Text = encodestring;
+            */
+
         }
 
         private void Button3_Click(object sender, EventArgs e) {
-            List<string> Dictionary = new List<string>();
-            Dictionary.AddRange(richTextBox3.Text.Split('\n'));
-            string decodeStr = "";
-            string tempStr;
-            int tempID;
+          
+        }
 
-            foreach(string str in richTextBox2.Text.Split('|')) {
-                if (str.Contains(',')) {
-                    tempID = Convert.ToInt32(str.Split(',')[0]);
-                    tempStr = str.Split(',')[1];
+        private void RichTextBox2_TextChanged(object sender, EventArgs e) {
 
-                    if (tempID == 0) {
-                        decodeStr += tempStr;
-                    } else {
-                        decodeStr += Dictionary[tempID] + tempStr;
-                    }
-                    
-                }
-            }
-
-            richTextBox1.Text = decodeStr;
         }
     }
 }
