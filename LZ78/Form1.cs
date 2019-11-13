@@ -96,54 +96,84 @@ namespace LZ78 {
             MessageBox.Show("壓縮比率：" + num.ToString("G", CultureInfo.InvariantCulture));
         }
 
-        private void Button3_Click(object sender, EventArgs e) {
-            //DateTime time_start = DateTime.Now;//計時開始 取得目前時間
-
+        private void Button3_Click(object sender, EventArgs e)
+        {
             List<int> data = richTextBox2.Text.Split(' ').Select(Int32.Parse).ToList();
 
+            Dictionary<int, List<byte>> dictionary = new Dictionary<int, List<byte>>();
 
-            Dictionary<int, string> dictionary = new Dictionary<int, string>();
+            List<byte> decode = new List<byte>();
+            List<byte> lastbyt = new List<byte>();
 
-            string decode = null;
-            string entry;
-            string laststr = "";
-
-            foreach (int c in data) {
+            foreach (int c in data)
+            {
                 switch (c)
                 {
                     case 256:
-                        laststr = "";
+
+                        lastbyt.Clear();
                         dictionary.Clear();
-                        for (int i = 0; i < 256; i++) dictionary.Add(i, ((char)i).ToString());
+                        for (int i = 0; i < 256; i++)
+                        {
+                            string tmpstr;
+                            List<byte> tmpByt = new List<byte>();
+                            if (i >= 65 && i <= 70)
+                            {
+                                tmpstr = ((char)i).ToString();
+                                tmpByt.Add(byte.Parse(tmpstr, System.Globalization.NumberStyles.HexNumber));
+                            }
+                            if (i >= 48 && i <= 57)
+                            {
+                                tmpstr = ((char)i).ToString();
+                                tmpByt.Add(byte.Parse(tmpstr, System.Globalization.NumberStyles.HexNumber));
+                            }
+                            dictionary.Add(i, tmpByt.ToList());
+                            tmpByt.Clear();
+                        }
+
                         break;
 
                     case 257:
                         break;
 
                     default:
-                        entry = "";
+                        List<byte> entry = new List<byte>();
 
                         if (dictionary.ContainsKey(c))
-                            entry = dictionary[c];
+                        {
+                            entry = dictionary[c].ToList();
+                        }
                         else
-                            entry = laststr + laststr[0];
+                        {
+                            entry = lastbyt.ToList();
+                            if (lastbyt.Count > 0) entry.Add(lastbyt[0]);
+                        }
 
+                        decode.AddRange(entry.ToArray());
 
-                        decode += entry;
+                        if (lastbyt.Count > 0)
+                        {
+                            List<byte> tmp = new List<byte>();
+                            tmp = lastbyt.ToList();
+                            tmp.Add(entry[0]);
+                            dictionary.Add(dictionary.Count + 2, tmp.ToList());
+                            tmp.Clear();
+                        }
 
-                        if (!laststr.Length.Equals(0)) dictionary.Add(dictionary.Count + 2, laststr + entry[0]);
-                        laststr = entry;
+                        lastbyt = entry.ToList();
                         break;
                 }
             }
 
-            //DateTime time_end = DateTime.Now;
+            byte[] tmpAry = decode.ToArray();
+            List<byte> decodeTxt = new List<byte>();
+            for (int i = 0; i < tmpAry.Count() - 1; i+= 2)
+            {
+                decodeTxt.Add((byte)(tmpAry[i] * 16 + tmpAry[i + 1]));
+            }
 
-            //string result2 = ((TimeSpan)(time_end - time_start)).TotalMilliseconds.ToString();
-
-            //MessageBox.Show(result2);
-            richTextBox1.Text = decode;
+            System.IO.File.WriteAllBytes("C:\\Users\\user\\Desktop\\LZ78-master\\decode.txt", decodeTxt.ToArray());
+            MessageBox.Show("ok");
         }
-
     }
 }

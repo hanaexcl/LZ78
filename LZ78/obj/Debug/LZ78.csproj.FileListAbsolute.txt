@@ -1,0 +1,7 @@
+C:\Users\user\Desktop\LZ78-master\LZ78\bin\Debug\LZ78.exe
+C:\Users\user\Desktop\LZ78-master\LZ78\bin\Debug\LZ78.pdb
+C:\Users\user\Desktop\LZ78-master\LZ78\obj\Debug\LZ78.Form1.resources
+C:\Users\user\Desktop\LZ78-master\LZ78\obj\Debug\LZ78.Properties.Resources.resources
+C:\Users\user\Desktop\LZ78-master\LZ78\obj\Debug\LZ78.csproj.GenerateResource.Cache
+C:\Users\user\Desktop\LZ78-master\LZ78\obj\Debug\LZ78.exe
+C:\Users\user\Desktop\LZ78-master\LZ78\obj\Debug\LZ78.pdb
